@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>敬語動詞翻牌閃卡</title>
+<style>
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC","Helvetica Neue",Arial,sans-serif;
+    background:#f6efe6;
+    color:#2f261f;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    min-height:100vh;
+  }
+  header{
+    width:100%;
+    text-align:center;
+    padding:22px 12px 10px;
+  }
+  h1{font-size:1.55rem;margin:0 0 8px;}
+  .hint{font-size:.95rem;color:#6e5d50;}
+  .wrap{
+    width:min(92vw,430px);
+    margin-top:12px;
+  }
+  .counter{
+    text-align:center;
+    margin:10px 0 14px;
+    color:#7b4d35;
+    font-weight:700;
+  }
+  .card{
+    height:340px;
+    perspective:1000px;
+    cursor:pointer;
+  }
+  .inner{
+    width:100%;
+    height:100%;
+    position:relative;
+    transition:transform .55s;
+    transform-style:preserve-3d;
+    -webkit-transform-style:preserve-3d;
+  }
+  .card.flipped .inner{
+    transform:rotateY(180deg);
+    -webkit-transform:rotateY(180deg);
+  }
+  .face{
+    position:absolute;
+    inset:0;
+    border-radius:24px;
+    backface-visibility:hidden;
+    -webkit-backface-visibility:hidden;
+    box-shadow:0 12px 28px rgba(0,0,0,.16);
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    padding:26px;
+    box-sizing:border-box;
+    text-align:center;
+  }
+  .front{
+    background:#fffaf2;
+    border:2px solid #c8452d;
+  }
+  .back{
+    background:#2f261f;
+    color:#fffaf2;
+    transform:rotateY(180deg);
+    -webkit-transform:rotateY(180deg);
+    border:2px solid #d9b36c;
+  }
+  .label{
+    font-size:.9rem;
+    letter-spacing:.1em;
+    color:#9b4a36;
+    margin-bottom:16px;
+  }
+  .back .label{color:#e6c77c;}
+  .word{
+    font-size:2.6rem;
+    font-weight:800;
+    margin-bottom:12px;
+  }
+  .kana{
+    font-size:1.1rem;
+    color:#7b6a5d;
+  }
+  .back .kana{color:#e8d8bd;}
+  .answer{
+    font-size:1.12rem;
+    line-height:1.85;
+    opacity:0;
+    visibility:hidden;
+    transition:opacity .15s ease, visibility 0s linear .15s;
+    word-break:keep-all;
+    overflow-wrap:anywhere;
+  }
+  .card.showAnswer .answer{
+    opacity:1;
+    visibility:visible;
+    transition:opacity .15s ease;
+  }
+  .answer b{color:#ffd88a;}
+  button{
+    border:none;
+    border-radius:999px;
+    padding:12px 18px;
+    margin:18px 6px;
+    font-size:1rem;
+    font-weight:700;
+    background:#c8452d;
+    color:white;
+  }
+  button.secondary{
+    background:#7b6a5d;
+  }
+  .buttons{text-align:center;}
+  .mini{
+    font-size:.85rem;
+    color:#78685e;
+    text-align:center;
+    margin-top:2px;
+  }
+
+  .source-note{
+    margin-top:10px;
+    padding:10px 12px;
+    border-top:1px solid #e3d1b8;
+    line-height:1.6;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>敬語動詞翻牌閃卡</h1>
+  <div class="hint">前14張為講義內容，15～50張為GPT補充；點卡片翻面</div>
+</header>
+
+<div class="wrap">
+  <div class="counter" id="counter"></div>
+
+  <div class="card" id="card" onclick="flipCard()">
+    <div class="inner">
+      <div class="face front">
+        <div class="label">普通形</div>
+        <div class="word" id="frontWord"></div>
+        <div class="kana" id="frontHint">點一下看敬語</div>
+      </div>
+      <div class="face back">
+        <div class="label">敬語答案</div>
+        <div class="answer" id="backAnswer"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="buttons">
+    <button class="secondary" onclick="prevCard(event)">上一張</button>
+    <button onclick="nextCard(event)">下一張</button>
+  </div>
+  <div class="mini">建議：先看到普通形，自己想「尊敬語／謙讓語」再翻面。</div>
+  <div class="mini source-note">前14張依據講義「敬語動詞對照表」整理；第15～50張為補充。<br>本資訊由GPT蒐集提供，不一定正確。</div>
+</div>
+
+<script>
+const cards = [
+  {q:"言う", a:"<b>來源：</b>講義表格<br><b>尊敬語：</b>おっしゃる<br><b>謙讓語：</b>申す／申し上げる<br><b>中文：</b>說"},
+  {q:"行く", a:"<b>來源：</b>講義表格<br><b>尊敬語：</b>いらっしゃる／おいでになる<br><b>謙讓語：</b>参る<br><b>中文：</b>去"},
+  {q:"来る", a:"<b>來源：</b>講義表格<br><b>尊敬語：</b>いらっしゃる／おいでになる／お見えになる／お越しになる<br><b>謙讓語：</b>参る<br><b>中文：</b>來"},
+  {q:"食べる", a:"<b>來源：</b>講義表格<br><b>尊敬語：</b>召し上がる<br><b>謙讓語：</b>いただく<br><b>中文：</b>吃"},
+  {q:"飲む", a:"<b>來源：</b>講義表格<br><b>尊敬語：</b>召し上がる<br><b>謙讓語：</b>いただく<br><b>中文：</b>喝"},
+  {q:"いる", a:"<b>來源：</b>講義表格<br><b>尊敬語：</b>いらっしゃる／おいでになる<br><b>謙讓語：</b>おる<br><b>中文：</b>人在／存在"},
+  {q:"する", a:"<b>來源：</b>講義表格<br><b>尊敬語：</b>なさる<br><b>謙讓語：</b>致す<br><b>中文：</b>做"},
+  {q:"見る", a:"<b>來源：</b>講義表格<br><b>尊敬語：</b>ご覧になる<br><b>謙讓語：</b>拝見する<br><b>中文：</b>看"},
+  {q:"やる／あげる", a:"<b>來源：</b>講義表格<br><b>尊敬語：</b>沒有固定特殊形<br><b>謙讓語：</b>差し上げる<br><b>中文：</b>我給別人"},
+  {q:"くれる", a:"<b>來源：</b>講義表格<br><b>尊敬語：</b>くださる<br><b>謙讓語：</b>沒有固定特殊形<br><b>中文：</b>別人給我"},
+  {q:"もらう", a:"<b>來源：</b>講義表格<br><b>尊敬語：</b>沒有固定特殊形<br><b>謙讓語：</b>いただく<br><b>中文：</b>收到／領受"},
+  {q:"問う", a:"<b>來源：</b>講義表格<br><b>尊敬語：</b>お尋ねになる<br><b>謙讓語：</b>お尋ね致す／お伺い致す<br><b>中文：</b>詢問／請教"},
+  {q:"知っている", a:"<b>來源：</b>講義表格<br><b>尊敬語：</b>ご存じです<br><b>謙讓語：</b>存じておる／存じております<br><b>中文：</b>知道／認識"},
+  {q:"思う", a:"<b>來源：</b>講義表格<br><b>尊敬語：</b>沒有固定特殊形<br><b>謙讓語：</b>存じる／存ずる<br><b>中文：</b>想／認為"},
+  {q:"聞く（詢問）", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>お聞きになる<br><b>謙讓語：</b>伺う<br><b>中文：</b>詢問／請教"},
+  {q:"聞く（聽）", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>お聞きになる<br><b>謙讓語：</b>拝聴する<br><b>中文：</b>聽／聆聽"},
+  {q:"会う", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>お会いになる／会われる<br><b>謙讓語：</b>お目にかかる<br><b>中文：</b>見面"},
+  {q:"読む", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>お読みになる<br><b>謙讓語：</b>拝読する<br><b>中文：</b>閱讀／拜讀"},
+  {q:"書く", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>お書きになる<br><b>謙讓語：</b>書かせていただく<br><b>中文：</b>寫"},
+  {q:"話す", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>お話しになる<br><b>謙讓語：</b>お話しする／お話し致す<br><b>中文：</b>說話／談話"},
+  {q:"待つ", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>お待ちになる<br><b>謙讓語：</b>お待ちする／お待ち致す<br><b>中文：</b>等待"},
+  {q:"使う", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>お使いになる<br><b>謙讓語：</b>使わせていただく<br><b>中文：</b>使用"},
+  {q:"送る", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>お送りになる<br><b>謙讓語：</b>お送りする／お送り致す<br><b>中文：</b>寄送／送"},
+  {q:"読む／見る（資料）", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>ご覧になる<br><b>謙讓語：</b>拝見する／拝読する<br><b>中文：</b>看資料／閱讀資料"},
+  {q:"見せる", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>お見せになる<br><b>謙讓語：</b>お目にかける<br><b>中文：</b>給人看"},
+  {q:"借りる", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>お借りになる<br><b>謙讓語：</b>拝借する<br><b>中文：</b>借"},
+  {q:"受ける", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>お受けになる<br><b>謙讓語：</b>お受けする／承る<br><b>中文：</b>接受／承接"},
+  {q:"受け取る", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>お受け取りになる<br><b>謙讓語：</b>頂戴する／拝受する<br><b>中文：</b>收下／收到"},
+  {q:"わかる", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>おわかりになる<br><b>謙讓語：</b>承知する／かしこまる<br><b>中文：</b>明白／了解"},
+  {q:"引き受ける", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>お引き受けになる<br><b>謙讓語：</b>承る<br><b>中文：</b>承接／接受委託"},
+  {q:"伝える", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>お伝えになる<br><b>謙讓語：</b>申し伝える<br><b>中文：</b>轉告／傳達"},
+  {q:"知らせる", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>お知らせになる<br><b>謙讓語：</b>お知らせする／ご案内する<br><b>中文：</b>通知／告知"},
+  {q:"教える", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>お教えになる<br><b>謙讓語：</b>お教えする／ご案内する<br><b>中文：</b>教／告知"},
+  {q:"連絡する", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>ご連絡になる／連絡なさる<br><b>謙讓語：</b>ご連絡する／ご連絡致す<br><b>中文：</b>聯絡"},
+  {q:"説明する", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>ご説明になる／説明なさる<br><b>謙讓語：</b>ご説明する／ご説明致す<br><b>中文：</b>說明"},
+  {q:"紹介する", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>ご紹介になる／紹介なさる<br><b>謙讓語：</b>ご紹介する／ご紹介致す<br><b>中文：</b>介紹"},
+  {q:"案内する", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>ご案内になる／案内なさる<br><b>謙讓語：</b>ご案内する／ご案内致す<br><b>中文：</b>帶路／介紹資訊"},
+  {q:"確認する", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>ご確認になる／確認なさる<br><b>謙讓語：</b>確認する／確認致す<br><b>中文：</b>確認"},
+  {q:"利用する", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>ご利用になる<br><b>謙讓語：</b>利用させていただく<br><b>中文：</b>利用／使用"},
+  {q:"参加する", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>ご参加になる／参加なさる<br><b>謙讓語：</b>参加させていただく<br><b>中文：</b>參加"},
+  {q:"出席する", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>ご出席になる／出席なさる<br><b>謙讓語：</b>出席させていただく<br><b>中文：</b>出席"},
+  {q:"帰る", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>お帰りになる<br><b>謙讓語：</b>失礼する／帰らせていただく<br><b>中文：</b>回去／告辭"},
+  {q:"休む", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>お休みになる<br><b>謙讓語：</b>休ませていただく<br><b>中文：</b>休息／請假"},
+  {q:"寝る", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>お休みになる<br><b>謙讓語：</b>沒有固定特殊形<br><b>中文：</b>睡覺"},
+  {q:"着る", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>お召しになる<br><b>謙讓語：</b>沒有固定特殊形<br><b>中文：</b>穿"},
+  {q:"持っている", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>お持ちである／お持ちになる<br><b>謙讓語：</b>持っております<br><b>中文：</b>持有／擁有"},
+  {q:"買う", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>お買いになる<br><b>謙讓語：</b>買わせていただく<br><b>中文：</b>買"},
+  {q:"考える", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>お考えになる<br><b>謙讓語：</b>考えております／検討する<br><b>中文：</b>思考／考慮"},
+  {q:"死ぬ", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>お亡くなりになる<br><b>謙讓語：</b>沒有固定特殊形<br><b>中文：</b>過世"},
+  {q:"訪問する", a:"<b>來源：</b>GPT補充<br><b>尊敬語：</b>お越しになる／いらっしゃる<br><b>謙讓語：</b>伺う／訪問させていただく<br><b>中文：</b>拜訪／來訪"}
+];
+
+let index = 0;
+const card = document.getElementById("card");
+const frontWord = document.getElementById("frontWord");
+const backAnswer = document.getElementById("backAnswer");
+const counter = document.getElementById("counter");
+
+let answerTimer = null;
+
+function hideBackImmediately(){
+  if(answerTimer) clearTimeout(answerTimer);
+  card.classList.remove("showAnswer");
+  backAnswer.innerHTML = "";
+}
+
+function render(){
+  hideBackImmediately();
+  card.classList.remove("flipped");
+  frontWord.textContent = cards[index].q;
+  counter.textContent = `${index + 1} / ${cards.length}`;
+
+  // 等卡片回到正面後才放入背面答案，避免切換題目時背面被偷看到
+  setTimeout(() => {
+    if(!card.classList.contains("flipped")){
+      backAnswer.innerHTML = cards[index].a;
+    }
+  }, 560);
+}
+
+function flipCard(){
+  if(answerTimer) clearTimeout(answerTimer);
+
+  if(card.classList.contains("flipped")){
+    hideBackImmediately();
+    card.classList.remove("flipped");
+
+    // 翻回正面後再重新放回本題答案，下一次翻面才會顯示
+    setTimeout(() => {
+      if(!card.classList.contains("flipped")){
+        backAnswer.innerHTML = cards[index].a;
+      }
+    }, 560);
+  }else{
+    backAnswer.innerHTML = cards[index].a;
+    card.classList.add("flipped");
+    answerTimer = setTimeout(() => {
+      card.classList.add("showAnswer");
+    }, 500);
+  }
+}
+
+function nextCard(e){
+  e.stopPropagation();
+  hideBackImmediately();
+  card.classList.remove("flipped");
+  index = (index + 1) % cards.length;
+  frontWord.textContent = cards[index].q;
+  counter.textContent = `${index + 1} / ${cards.length}`;
+
+  setTimeout(() => {
+    if(!card.classList.contains("flipped")){
+      backAnswer.innerHTML = cards[index].a;
+    }
+  }, 560);
+}
+
+function prevCard(e){
+  e.stopPropagation();
+  hideBackImmediately();
+  card.classList.remove("flipped");
+  index = (index - 1 + cards.length) % cards.length;
+  frontWord.textContent = cards[index].q;
+  counter.textContent = `${index + 1} / ${cards.length}`;
+
+  setTimeout(() => {
+    if(!card.classList.contains("flipped")){
+      backAnswer.innerHTML = cards[index].a;
+    }
+  }, 560);
+}
+render();
+</script>
+</body>
+</html>
